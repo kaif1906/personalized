@@ -5,6 +5,11 @@ const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
 
+// Import Routers
+const userRouter = require('./routers/UserRouter'); // Assuming UserRouter is in a 'routers' directory
+const newsletterRouter = require('./routers/NewsletterRouter');
+// You will also need to import connection.js or ensure it runs (e.g., const connection = require('./connection');)
+
 const fileManager = new GoogleAIFileManager(process.env.API_KEY);
 
 const app = express();
@@ -22,56 +27,22 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// --- In-memory user data (replace with database later) ---
-const users = [
-  { email: "siddiquekaif38@gmail.com", password: "123456", name: "Kaif Sheikh" },
-];
+// REMOVED: In-memory user data (const users = [...])
 
 // --- Root route ---
 app.get("/", (req, res) => {
   res.send("✅ Backend running successfully on port " + port);
 });
 
-// --- SIGNUP ROUTE ---
-app.post("/user/add", (req, res) => {
-  const { name, email, password } = req.body;
+// --- Router Mounts ---
+// This line delegates all /user/* requests to UserRouter.js
+app.use('/user', userRouter);
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "All fields are required." });
-  }
+// Newsletter router mount
+app.use('/newsletter', newsletterRouter); 
 
-  const existingUser = users.find((u) => u.email === email);
-  if (existingUser) {
-    return res.status(400).json({ message: "User already exists." });
-  }
-
-  users.push({ name, email, password });
-  console.log("✅ New user registered:", { name, email });
-
-  res.status(201).json({ message: "Registration successful!" });
-});
-
-// --- LOGIN ROUTE ---
-app.post("/user/authenticate", (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password)
-    return res.status(400).json({ message: "Email and password are required." });
-
-  const user = users.find((u) => u.email === email && u.password === password);
-
-  if (!user)
-    return res.status(401).json({ message: "Invalid email or password." });
-
-  // Dummy token
-  const token = "fake-jwt-token-" + new Date().getTime();
-
-  res.status(200).json({
-    message: "Login successful",
-    token,
-    user: { name: user.name, email: user.email },
-  });
-});
+// REMOVED: Duplicated /user/add (SIGNUP) route
+// REMOVED: Duplicated /user/authenticate (LOGIN) route
 
 // --- FILE UPLOAD ROUTE ---
 app.post("/uploadfile", upload.array("myfiles", 10), async (req, res) => {

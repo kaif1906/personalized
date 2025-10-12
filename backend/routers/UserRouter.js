@@ -80,10 +80,6 @@ router.put('/update/:id',(req, res) => {
             res.status(500).json(err);
             
         });
-
-
-
-
 });
 
 router.post('/authenticate', (req, res) => {
@@ -109,7 +105,8 @@ router.post('/authenticate', (req, res) => {
               user: {
                 _id,
                 name,
-                email: result.email
+                email: result.email,
+                createdAt: result.createdAt
               }
             });
           }
@@ -123,9 +120,5 @@ router.post('/authenticate', (req, res) => {
       res.status(500).json({ error: 'Server error', details: err });
     });
 });
-
-
-
-
 
 module.exports = router;
