@@ -37,7 +37,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/user/authenticate", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/authenticate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

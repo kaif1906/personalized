@@ -132,7 +132,7 @@ export default function ProfilePage() {
 
       // Call backend API to update user profile
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://mern-workshop.onrender.com' 
+        ? process.env.NEXT_PUBLIC_API_URL 
         : 'http://localhost:5000';
       const response = await fetch(`${baseUrl}/user/update/${user._id}`, {
         method: 'PUT',
