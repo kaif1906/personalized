@@ -2,98 +2,119 @@ require("dotenv").config();
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const express = require("express");
 const multer = require("multer");
-const cors = require('cors');
+const cors = require("cors");
+const path = require("path");
 
-// Note: The GoogleGenerativeAI client is not needed here as the primary task is file management,
-// but it can be easily added back for content generation using the uploaded file IDs.
-
-// Initialize the File Manager using the API key from environment variables
-// It's assumed the API key is available in process.env.API_KEY
 const fileManager = new GoogleAIFileManager(process.env.API_KEY);
-
-// --- Multer Configuration ---
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Ensure this directory exists or the server will crash
-        cb(null, "./uploads");
-    },
-    filename: (req, file, cb) => {
-        // Use originalname, but should ensure unique filenames in a production app
-        cb(null, file.originalname);
-    },
-});
-
-// Configure multer to use the disk storage
-const myStorage = multer({ storage: storage });
 
 const app = express();
 const port = process.env.PORT || 5000;
 
+// --- Middleware ---
 app.use(cors());
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "uploads"))); // serve images
 
-// Serve static files from the uploads directory
-app.use(express.static('./uploads'));
+// --- Multer setup ---
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "./uploads"),
+  filename: (req, file, cb) => cb(null, file.originalname),
+});
+const upload = multer({ storage });
 
-app.get('/', (req, res) => {
-    res.send('Server is running and ready for file uploads.');
+// --- In-memory user data (replace with database later) ---
+const users = [
+  { email: "siddiquekaif38@gmail.com", password: "123456", name: "Kaif Sheikh" },
+];
+
+// --- Root route ---
+app.get("/", (req, res) => {
+  res.send("✅ Backend running successfully on port " + port);
 });
 
-// --- New Multi-File Upload Endpoint ---
-// Using .array('myfiles', 10) to accept multiple files (up to 10) under the field name 'myfiles'.
-app.post("/uploadfile", myStorage.array("myfiles", 10), async (req, res) => {
-    console.log("Processing upload request...");
-    console.log(req.files);
+// --- SIGNUP ROUTE ---
+app.post("/user/add", (req, res) => {
+  const { name, email, password } = req.body;
 
-    if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ message: "No files uploaded. Ensure you are using the field name 'myfiles'." });
-    }
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
 
-    // 1. Map all local file uploads to an array of promises for Google AI File Manager upload
-    const uploadPromises = req.files.map((file) => {
-        const filePath = `./uploads/${file.originalname}`;
-        // The public URL must be dynamically constructed based on where the server is hosted.
-        // Assuming 'https://mern-workshop.onrender.com/' for the base URL as per original code.
-        const publicUrl = 'https://mern-workshop.onrender.com/' + file.originalname;
+  const existingUser = users.find((u) => u.email === email);
+  if (existingUser) {
+    return res.status(400).json({ message: "User already exists." });
+  }
 
-        console.log(`Attempting to upload: ${file.originalname}`);
+  users.push({ name, email, password });
+  console.log("✅ New user registered:", { name, email });
 
-        return fileManager.uploadFile(
-            filePath,
-            {
-                mimeType: file.mimetype,
-                displayName: file.originalname,
-            },
-        ).then((uploadResult) => {
-            // Log successful upload to the server console
-            console.log(`Successfully uploaded to Google AI: ${uploadResult.file.displayName}`);
+  res.status(201).json({ message: "Registration successful!" });
+});
 
-            // Return a result object combining the Gemini response and the public server URL
-            return {
-                geminiFile: uploadResult.file,
-                publicUrl: publicUrl,
-                localPath: filePath
-            };
-        });
+// --- LOGIN ROUTE ---
+app.post("/user/authenticate", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password)
+    return res.status(400).json({ message: "Email and password are required." });
+
+  const user = users.find((u) => u.email === email && u.password === password);
+
+  if (!user)
+    return res.status(401).json({ message: "Invalid email or password." });
+
+  // Dummy token
+  const token = "fake-jwt-token-" + new Date().getTime();
+
+  res.status(200).json({
+    message: "Login successful",
+    token,
+    user: { name: user.name, email: user.email },
+  });
+});
+
+// --- FILE UPLOAD ROUTE ---
+app.post("/uploadfile", upload.array("myfiles", 10), async (req, res) => {
+  console.log("Processing upload request...");
+
+  if (!req.files || req.files.length === 0)
+    return res.status(400).json({ message: "No files uploaded." });
+
+  try {
+    const uploadPromises = req.files.map(async (file) => {
+      const filePath = path.join(__dirname, "uploads", file.originalname);
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? "https://mern-workshop.onrender.com"
+          : `http://localhost:${port}`;
+
+      const publicUrl = `${baseUrl}/${file.originalname}`;
+
+      console.log(`Uploading: ${file.originalname}`);
+
+      const uploaded = await fileManager.uploadFile(filePath, {
+        mimeType: file.mimetype,
+        displayName: file.originalname,
+      });
+
+      return {
+        geminiFile: uploaded.file,
+        publicUrl,
+      };
     });
 
-    try {
-        // 2. Wait for all promises to resolve (all files uploaded to Gemini)
-        const results = await Promise.all(uploadPromises);
-        console.log(results);
-        // 3. Respond with an array of all file results
-        console.log(`Successfully processed ${results.length} files.`);
-        return res.status(200).json(results);
-
-    } catch (err) {
-        // 4. Handle any errors during the file manager uploads
-        console.error("An error occurred during Google AI file upload:", err);
-        // You might want to consider deleting files already uploaded to Gemini if an error occurs
-        return res.status(500).json({ message: "Error uploading one or more files to the Google AI File Manager.", error: err.message });
-    }
+    const results = await Promise.all(uploadPromises);
+    res.status(200).json(results);
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({
+      message: "File upload failed",
+      error: err.message,
+    });
+  }
 });
 
-
+// --- Start server ---
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });

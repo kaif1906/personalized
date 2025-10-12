@@ -1,7 +1,9 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Utensils } from "lucide-react"; // 🍴 Icon for your brand
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,38 +13,35 @@ export default function Navbar() {
   useEffect(() => {
     const checkLoginStatus = () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         setIsLoggedIn(!!token);
       } catch (error) {
-        console.error('Error checking login status:', error);
+        console.error("Error checking login status:", error);
       }
     };
 
-    // Check immediately when component mounts
     checkLoginStatus();
 
-    // Storage event listener for cross-tab synchronization
     const handleStorageChange = (e) => {
-      if (e.key === 'token') {
+      if (e.key === "token") {
         checkLoginStatus();
       }
     };
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
-    // Cleanup function
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem('token');
+      localStorage.removeItem("token");
       setIsLoggedIn(false);
-      window.location.href = '/'; // Using window.location for full page reload
+      window.location.href = "/";
     } catch (error) {
-      console.error('Logout error:', error);
-      alert('Error during logout. Please try again.');
+      console.error("Logout error:", error);
+      alert("Error during logout. Please try again.");
     }
   };
 
@@ -51,21 +50,37 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <span className="text-xl font-bold text-green-600">RecipeAI</span>
+          <div className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2 group">
+              {/* Animated Icon */}
+              <motion.div
+                whileHover={{ rotate: 20, scale: 1.2 }}
+                transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                className="bg-green-100 p-2 rounded-full"
+              >
+                <Utensils className="w-6 h-6 text-green-600" />
+              </motion.div>
+
+              {/* Brand Text */}
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                className="text-xl font-extrabold text-green-600 tracking-wide"
+              >
+                RecipeAI
+              </motion.span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-green-600">
+            <Link href="/" className="text-gray-700 hover:text-green-600 transition-colors">
               Home
             </Link>
-            <Link href="/recommender" className="text-gray-700 hover:text-green-600">
+
+            <Link href="/recommender" className="text-gray-700 hover:text-green-600 transition-colors">
               Get Recommendations
             </Link>
-            
+
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
@@ -75,10 +90,13 @@ export default function Navbar() {
               </button>
             ) : (
               <>
-                <Link href="/login" className="text-gray-700 hover:text-green-600">
+                <Link href="/login" className="text-gray-700 hover:text-green-600 transition-colors">
                   Login
                 </Link>
-                <Link href="/signup" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                <Link
+                  href="/signup"
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all"
+                >
                   Sign Up
                 </Link>
               </>
