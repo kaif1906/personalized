@@ -62,7 +62,7 @@ export default function App() {
     setLoading(true);
     toast.loading("Uploading images...");
 
-    fetch("${process.env.NEXT_PUBLIC_API_URL}/uploadfile", {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/uploadfile`, {
       method: "POST",
       body: fd,
     })

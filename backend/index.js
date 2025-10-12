@@ -58,7 +58,7 @@ app.post("/uploadfile", upload.array("myfiles", 10), async (req, res) => {
       const filePath = path.join(__dirname, "uploads", file.originalname);
       const baseUrl =
         process.env.NODE_ENV === "production"
-          ? "https://mern-workshop.onrender.com"
+          ? "https://personalized-3xw0.onrender.com"
           : `http://localhost:${port}`;
 
       const publicUrl = `${baseUrl}/${file.originalname}`;
