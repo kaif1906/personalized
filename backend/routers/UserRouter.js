@@ -1,21 +1,57 @@
 const express = require('express');
 const Model = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');   // ✅ ADD THIS LINE
 require('dotenv').config();
+
 
 
 const router = express.Router();
 
-router.post('/add', (req, res) => {
-    console.log(req.body);
+router.post('/add', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
 
-    new Model(req.body).save()
-        .then((result) => {
-            res.status(200).json(result);
-        }).catch((err) => {
-            console.log(err);
-            res.status(500).json(err);
-        });
+    // 🔴 Check if user already exists
+    const existingUser = await Model.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: 'User already exists with this email',
+      });
+    }
+
+    // 🔐 Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Create new user
+    const newUser = new Model({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    const savedUser = await newUser.save();
+
+    res.status(201).json({
+      message: 'User registered successfully ✅',
+      user: savedUser,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    // ✅ duplicate email error fallback (extra safety)
+    if (err.code === 11000) {
+      return res.status(400).json({
+        message: 'User already registered with this email',
+      });
+    }
+
+    res.status(500).json({
+      message: 'Server error during signup',
+    });
+  }
 });
 
 
@@ -48,9 +84,9 @@ router.get('/getbyemail/:email', (req, res) => {
         });
 })
 
-router.get('/getbyid/:id',(req, res) => {
+router.get('/getbyid/:id', (req, res) => {
     Model.findById(req.params.id)
-    .then((result) => {
+        .then((result) => {
             res.status(200).json(result);
         }).catch((err) => {
             res.status(500).json(err);
@@ -58,67 +94,79 @@ router.get('/getbyid/:id',(req, res) => {
 })
 
 
-router.delete('/delete/:id',(req, res) => {
+router.delete('/delete/:id', (req, res) => {
     Model.findByIdAndDelete(req.params.id)
         .then((result) => {
             res.status(200).json(result);
         }).catch((err) => {
             console.log(err);
             res.status(500).json(err);
-            
+
         });
 })
 
 
 
-router.put('/update/:id',(req, res) => {
-    Model.findByIdAndUpdate(req.params.id, req.body,{ new:true })
+router.put('/update/:id', (req, res) => {
+    Model.findByIdAndUpdate(req.params.id, req.body, { new: true })
         .then((result) => {
             res.status(200).json(result);
         }).catch((err) => {
             console.log(err);
             res.status(500).json(err);
-            
+
         });
 });
 
-router.post('/authenticate', (req, res) => {
-  const { email, password } = req.body;
+router.post('/authenticate', async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-  Model.findOne({ email, password })
-    .then((result) => {
-      if (result) {
-        const { _id, name } = result;
-        jwt.sign(
-          { _id, name },
-          process.env.JWT_SECRET || 'mytopsecret', // ✅ use env variable if available
-          { expiresIn: '1h' },
-          (err, token) => {
-            if (err) {
-              console.log(err);
-              return res.status(500).json({ error: 'Token generation failed', details: err });
-            }
+        const user = await Model.findOne({ email });
 
-            res.status(200).json({
-              message: 'Login successful ✅',
-              token,
-              user: {
-                _id,
-                name,
-                email: result.email,
-                createdAt: result.createdAt
-              }
+        if (!user) {
+            return res.status(401).json({
+                message: 'Authentication failed ❌ Invalid email or password',
             });
-          }
+        }
+
+        // 🔐 Compare hashed password
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                message: 'Authentication failed ❌ Invalid email or password',
+            });
+        }
+
+        const { _id, name } = user;
+
+        jwt.sign(
+            { _id, name },
+            process.env.JWT_SECRET || 'mytopsecret',
+            { expiresIn: '1h' },
+            (err, token) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Token generation failed' });
+                }
+
+                res.status(200).json({
+                    message: 'Login successful ✅',
+                    token,
+                    user: {
+                        _id,
+                        name,
+                        email: user.email,
+                        createdAt: user.createdAt,
+                    },
+                });
+            }
         );
-      } else {
-        res.status(401).json({ message: 'Authentication failed ❌ Invalid email or password' });
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).json({ error: 'Server error', details: err });
-    });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 module.exports = router;

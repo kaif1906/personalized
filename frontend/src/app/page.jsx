@@ -7,6 +7,7 @@ import FeatureSection from "../components/FeatureSection";
 import Sidebar from "../components/Sidebar";
 import HowItWorksSection from "../components/HowItWorksSection";
 import PopularRecipesSection from "../components/PopularRecipesSection";
+import Image from "next/image";
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState("");
@@ -88,7 +89,18 @@ export default function HomePage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative min-h-[80vh] bg-[url('https://images.pexels.com/photos/5202112/pexels-photo-5202112.jpeg')] bg-cover bg-center flex flex-col items-center justify-center text-center overflow-hidden">
+      <section className="relative min-h-[80vh] flex flex-col items-center justify-center text-center overflow-hidden">
+
+        {/* Background Image (Optimized) */}
+        <Image
+          src="/images/pexels-photo-5202112.webp"
+          alt="Healthy food ingredients"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+
         {/* White overlay for contrast */}
         <div className="absolute inset-0 bg-gray-600/50"></div>
 
@@ -137,15 +149,15 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 0.25, y: 0 }}
-          transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-          className="absolute w-40 h-40 bg-green-400/20 rounded-full top-10 left-10 blur-3xl"
+          transition={{ duration: 2, repeat: 1, repeatType: "reverse" }}
+          className="absolute w-40 h-40 bg-green-400/20 rounded-full top-10 left-10 blur-xl"
         ></motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 0.25, y: 0 }}
-          transition={{ duration: 2, delay: 1, repeat: Infinity, repeatType: "reverse" }}
-          className="absolute w-32 h-32 bg-yellow-400/20 rounded-full bottom-20 right-20 blur-3xl"
+          transition={{ duration: 2, delay: 1, repeat: 1, repeatType: "reverse" }}
+          className="absolute w-32 h-32 bg-yellow-400/20 rounded-full bottom-20 right-20 blur-xl"
         ></motion.div>
       </section>
 
