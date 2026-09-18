@@ -93,7 +93,6 @@ export default function HomePage() {
 
         {/* Background Image (Optimized) */}
         <Image
-          loading="lazy"
           src="/images/pexels-photo-5202112.webp"
           alt="Healthy food ingredients"
           fill
