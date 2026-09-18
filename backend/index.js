@@ -9,6 +9,7 @@ const path = require("path");
 const userRouter = require('./routers/UserRouter'); // Assuming UserRouter is in a 'routers' directory
 const newsletterRouter = require('./routers/NewsletterRouter');
 // You will also need to import connection.js or ensure it runs (e.g., const connection = require('./connection');)
+require("./connection");
 
 const fileManager = new GoogleAIFileManager(process.env.API_KEY);
 
